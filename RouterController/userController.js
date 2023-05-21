@@ -3,9 +3,149 @@ const { dbConfig, connection, pool } = require("../db/db");
 const mysql = require("mysql");
 const { encryptPassword } = require("../middleware/password.encrypt");
 const { decryptPassword } = require("../middleware/password.decrypt");
-const { sendCredentialsEmail, sendEmail } = require("../middleware/email&pass.sender");
+const {
+  sendCredentialsEmail,
+  sendEmail,
+} = require("../middleware/email&pass.sender");
 const util = require("util");
 
+//getting all user to user info;
+
+const handelgetAlluser1 = (req, res) => {
+  try {
+    const token = req.headers.authorization;
+    jwt.verify(token, process.env.secret_key, (err, Tenantuuid) => {
+      if (err) {
+        return res.status(500).send({ error: err });
+      } else {
+        const dbName = `tenant_${Tenantuuid.org_id}`;
+        const userDbConfig = {
+          ...dbConfig,
+          database: dbName,
+        };
+        console.log(dbName);
+        const pool1 = mysql.createPool(userDbConfig);
+        const q = "SELECT firstname, lastname, email FROM user WHERE role = 0";
+        pool1.query(q, (err, result) => {
+          if (err) {
+            return res.status(300).send(err);
+          } else {
+            res.status(200).send(result);
+          }
+        });
+      }
+    });
+  } catch (error) {
+    return res.status(500).send({ error });
+  }
+};
+
+
+// const addUser = async (req, res) => {
+//   try {
+//     const { email, firstname, lastname, password } = req.body;
+//     const token = req.headers.authorization;
+//     if (
+//       !email ||
+//       !email.match(/^[^\s@]+@[^\s@]+\.[^\s@]+$/) ||
+//       !password ||
+//       password.length < 6 ||
+//       !firstname ||
+//       firstname.trim().length === 0 ||
+//       !lastname ||
+//       lastname.trim().length === 0
+//     ) {
+//       return res.status(400).json({ error: "Invalid request data" });
+//     }
+//     let username = `${firstname} ${lastname}`;
+
+//     jwt.verify(token, process.env.secret_key, async (err, result) => {
+//       if (err) {
+//         return res.status(401).send({ error: "cannot process req", err });
+//       } else {
+//         let hashpassword = await encryptPassword(password);
+
+//         // Check if the user already exists
+//         const checkUserQuery = "SELECT * FROM user_incomming WHERE email = ?";
+//         pool.query(checkUserQuery, [email], async (err, userResult) => {
+//           if (err) {
+//             return res.status(401).send({ error: "cannot process req", err });
+//           }
+//           if (userResult.length > 0) {
+//             return res.status(409).send({ message: "User already exists" });
+//           }
+
+//           const insertUserQuery =
+//             "INSERT INTO user_incomming (email, firstname, lastname, password, role, org_id) VALUES (?, ?, ?, ?, ?, ?)";
+
+//           res.cookie("useruuid", result.org_id, {
+//             httpOnly: true,
+//           });
+
+//           const insertUserValues = [
+//             email,
+//             firstname,
+//             lastname,
+//             hashpassword,
+//             0,
+//             result.uuid,
+//           ];
+//           pool.query(insertUserQuery, insertUserValues, (err, resul) => {
+//             if (err) {
+//               return res.status(401).send({ error: "cannot process req", err });
+//             }
+
+//             const dbName = `tenant_${result.uuid}`;
+//             const userDbConfig = {
+//               ...dbConfig,
+//               database: dbName,
+//             };
+//             const pool1 = mysql.createPool(userDbConfig);
+//             pool1.getConnection(async(error, connection) => {
+//               if (error) {
+//                 return res
+//                   .status(401)
+//                   .send({ error: "error while connection to db", error });
+//               }
+//              let test=await sendEmail(email, password)
+//  console.log(test);
+//               const insertUserQuery =
+//                 "INSERT INTO user (email, firstname, lastname, password, role, tenant_uuid) VALUES (?, ?, ?, ?, ?, ?)";
+//               let uuid = result.uuid;
+//               const insertUserValues = [
+//                 email,
+//                 firstname,
+//                 lastname,
+//                 hashpassword,
+//                 0,
+//                 uuid,
+//               ];
+//               connection.query(
+//                 insertUserQuery,
+//                 insertUserValues,
+//                 (err, result) => {
+//                   if (err) {
+//                     connection.release();
+//                     return res
+//                       .status(401)
+//                       .send({ error: "cannot process req", err });
+//                   }
+//                   connection.release();
+//                   res.send({"message":"user added successfully"});
+//                 }
+//               );
+//             });
+//           });
+//         });
+//       }
+//     });
+//   } catch (error) {
+//     console.log(error);
+//     res.send("error");
+//   }
+// };
+
+//new
 const addUser = async (req, res) => {
   try {
     const { email, firstname, lastname, password } = req.body;
@@ -66,28 +206,29 @@ const addUser = async (req, res) => {
               database: dbName,
             };
             const pool1 = mysql.createPool(userDbConfig);
-            pool1.getConnection(async(error, connection) => {
+            pool1.getConnection(async (error, connection) => {
               if (error) {
                 return res
                   .status(401)
                   .send({ error: "error while connection to db", error });
               }
-             let test=await sendEmail(email, password)
- console.log(test);
-              const insertUserQuery =
-                "INSERT INTO user (email, firstname, lastname, password, role, tenant_uuid) VALUES (?, ?, ?, ?, ?, ?)";
-              let uuid = result.uuid;
-              const insertUserValues = [
+
+              // Get the user data
+              const user = {
                 email,
                 firstname,
                 lastname,
-                hashpassword,
-                0,
-                uuid,
-              ];
+                password: hashpassword,
+                role: 0,
+                tenant_uuid: result.uuid,
+              };
+
+              // Insert user into the user table
+              const insertUserQuery =
+                "INSERT INTO user (email, firstname, lastname, password, role, tenant_uuid) VALUES (?, ?, ?, ?, ?, ?)";
               connection.query(
                 insertUserQuery,
-                insertUserValues,
+                Object.values(user),
                 (err, result) => {
                   if (err) {
                     connection.release();
@@ -96,7 +237,18 @@ const addUser = async (req, res) => {
                       .send({ error: "cannot process req", err });
                   }
                   connection.release();
-                  res.send({"message":"user added successfully"});
+
+                  // Update the user object with the inserted user ID
+                  const { email, firstname, lastname, ...other } = user;
+                  const id = result.insertId;
+
+                  res.send({
+                    message: "User added successfully",
+                    email,
+                    firstname,
+                    lastname,
+                    id,
+                  });
                 }
               );
             });
@@ -191,7 +343,7 @@ const updateUser = (req, res) => {
           if (result.affectedRows === 0) {
             return res.status(404).send({ message: "User not found" });
           } else {
-            res.send({message:"User updated successfully"});
+            res.send({ message: "User updated successfully" });
           }
         });
       });
@@ -238,7 +390,7 @@ const deleteUser = (req, res) => {
           if (result.affectedRows === 0) {
             return res.status(404).send({ message: "User not found" });
           } else {
-            res.send({"message":"User delete successfully"});
+            res.send({ message: "User delete successfully" });
           }
         });
       });
@@ -347,15 +499,86 @@ const handleGetAllUser = (req, res) => {
   }
 };
 
+// const handleAssignToColleague = async (req, res) => {
+//   try {
+
+//     const id = req.params.id;
+//     const assignee_email = req.headers.email;
+//     const token = req.headers.authorization;
+//     const email=req.body
+//     if (!token) {
+//       return res.status(401).send({ error: "Cannot process request without token" });
+//     }
+//     const tenantId = jwt.verify(token, process.env.secret_key);
+//     const dbName = `tenant_${tenantId.org_id}`;
+//     const userDbConfig = {
+//       ...dbConfig,
+//       database: dbName,
+//     };
+//     const pool1 = mysql.createPool(userDbConfig);
+//     const connection = await util.promisify(pool1.getConnection).call(pool1);
+
+//     // Checking if entered email is present or not
+
+//     const [result1] = await util.promisify(connection.query).call(
+//       connection,
+//       "SELECT email, id FROM user WHERE email = ? AND role = 0",
+//       [email]
+//     );
+//     console.log(email)
+//     if (!result1) {
+//       return res.status(401).send({ error: "User not found" });
+//     }
+
+//     // Searching for the ID of the user who created the todo
+//     const [user] = await util.promisify(connection.query).call(
+//       connection,
+//       "SELECT id FROM user WHERE email = ?",
+//       [assignee_email]
+//     );
+
+//     if (!user) {
+//       return res.status(500).send({ error: "Cannot process request" });
+//     }
+
+//     // Checking if the ID is valid or not
+//     const specific_todo = await util.promisify(connection.query).call(
+//       connection,
+//       "SELECT * FROM todo WHERE user_id = ?",
+//       [user.id]
+//     );
+
+//     const check = specific_todo.find(elm => +elm.id === Number(id));
+
+//     if (check) {
+//       // Updating the todo with the assigned user
+//       await util.promisify(connection.query).call(
+//         connection,
+//         "UPDATE todo SET user_id = ?, assignby_user_email = ? WHERE id = ?",
+//         [result1.id, assignee_email, id]
+//       );
+//       connection.release();
+//       res.status(200).send({ message: `Assigned task to ${result1.email}` });
+//     } else {
+//       return res.status(400).send({ error: "Invalid request" });
+//     }
+//   } catch (error) {
+//     console.log(error);
+//     res.status(500).send({ error: "Cannot process request", error });
+//   }
+// };
+//new
 const handleAssignToColleague = async (req, res) => {
   try {
-    const { email } = req.body;
     const id = req.params.id;
     const assignee_email = req.headers.email;
     const token = req.headers.authorization;
-    
+    const { email } = req.body;
+
     if (!token) {
-      return res.status(401).send({ error: "Cannot process request without token" });
+      return res
+        .status(401)
+        .send({ error: "Cannot process request without token" });
     }
 
     const tenantId = jwt.verify(token, process.env.secret_key);
@@ -368,50 +591,57 @@ const handleAssignToColleague = async (req, res) => {
     const connection = await util.promisify(pool1.getConnection).call(pool1);
 
     // Checking if entered email is present or not
-    const [result1] = await util.promisify(connection.query).call(
-      connection,
-      "SELECT email, id FROM user WHERE email = ? AND role = 0",
-      [email]
-    );
+    const [result1] = await util
+      .promisify(connection.query)
+      .call(
+        connection,
+        "SELECT email, id FROM user WHERE email = ? AND role = 0",
+        [email]
+      );
 
     if (!result1) {
+      connection.release();
       return res.status(401).send({ error: "User not found" });
     }
 
     // Searching for the ID of the user who created the todo
-    const [user] = await util.promisify(connection.query).call(
-      connection,
-      "SELECT id FROM user WHERE email = ?",
-      [assignee_email]
-    );
+    const [user] = await util
+      .promisify(connection.query)
+      .call(connection, "SELECT id FROM user WHERE email = ?", [
+        assignee_email,
+      ]);
 
     if (!user) {
+      connection.release();
       return res.status(500).send({ error: "Cannot process request" });
     }
 
     // Checking if the ID is valid or not
-    const specific_todo = await util.promisify(connection.query).call(
-      connection,
-      "SELECT * FROM todo WHERE user_id = ?",
-      [user.id]
-    );
+    const [specific_todo] = await util
+      .promisify(connection.query)
+      .call(connection, "SELECT * FROM todo WHERE user_id = ? AND id = ?", [
+        user.id,
+        id,
+      ]);
 
-    const check = specific_todo.find(elm => +elm.id === Number(id));
-
-    if (check) {
+    if (specific_todo) {
       // Updating the todo with the assigned user
-      await util.promisify(connection.query).call(
-        connection,
-        "UPDATE todo SET user_id = ?, assignby_user_email = ? WHERE id = ?",
-        [result1.id, assignee_email, id]
-      );
+      await util
+        .promisify(connection.query)
+        .call(
+          connection,
+          "UPDATE todo SET user_id = ?, assignby_user_email = ? WHERE id = ?",
+          [result1.id, assignee_email, id]
+        );
+
       connection.release();
       res.status(200).send({ message: `Assigned task to ${result1.email}` });
     } else {
+      connection.release();
       return res.status(400).send({ error: "Invalid request" });
     }
   } catch (error) {
-    console.log(error);
+    console.log(error)
     res.status(500).send({ error: "Cannot process request", error });
   }
 };
@@ -423,5 +653,6 @@ module.exports = {
   getUser,
   userLogin,
   handleGetAllUser,
-  handleAssignToColleague
+  handleAssignToColleague,
+  handelgetAlluser1,
 };
