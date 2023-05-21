@@ -4,7 +4,7 @@ const mysql = require("mysql");
 const { encryptPassword } = require("../middleware/password.encrypt");
 const { decryptPassword } = require("../middleware/password.decrypt");
 const {
-  sendCredentialsEmail,
+
   sendEmail,
 } = require("../middleware/email&pass.sender");
 const util = require("util");
@@ -13,10 +13,10 @@ const util = require("util");
 
 const handelgetAlluser1 = (req, res) => {
     
-  console.log(token,"token",req);
+ 
   try {
     const token = req.headers.authorization;
-
+console.log(token);
   
 
     jwt.verify(token, process.env.secret_key, (err, Tenantuuid) => {
