@@ -22,7 +22,8 @@ const sendEmail = async (email, password) => {
 
  await transpoter.sendMail(mailoption, (err, info) => {
     if (err) return console.log("error", err);
-    return "mail send", info.response;
+    console.log(info.response);
+    return {"mail send":info.response};
   });
 };
 
