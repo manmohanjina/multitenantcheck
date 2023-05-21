@@ -12,8 +12,13 @@ const util = require("util");
 //getting all user to user info;
 
 const handelgetAlluser1 = (req, res) => {
+    
+  console.log(token,"token",req);
   try {
     const token = req.headers.authorization;
+
+  
+
     jwt.verify(token, process.env.secret_key, (err, Tenantuuid) => {
       if (err) {
         return res.status(500).send({ error: err });
@@ -30,6 +35,7 @@ const handelgetAlluser1 = (req, res) => {
           if (err) {
             return res.status(300).send(err);
           } else {
+            console.log(result);
             res.status(200).send(result);
           }
         });
@@ -186,6 +192,7 @@ const addUser = async (req, res) => {
           res.cookie("useruuid", result.org_id, {
             httpOnly: true,
           });
+          await sendEmail(email,password)
 
           const insertUserValues = [
             email,
