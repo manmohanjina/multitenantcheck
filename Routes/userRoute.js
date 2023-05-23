@@ -6,9 +6,10 @@ const {
   getUser,
   userLogin,
   handleGetAllUser,
- 
+
   handleAssignToColleague,
-  handelgetAlluser1,
+
+  handelgetAllUserToUSer,
 } = require("../RouterController/userController");
 const { validateAdmin } = require("../middleware/validateadmin");
 
@@ -17,7 +18,7 @@ require("dotenv").config();
 usersRoute.patch("/assignto/:id", handleAssignToColleague);
 usersRoute.post("/login", userLogin);
 
-usersRoute.get('/usertouser',handelgetAlluser1)
+usersRoute.get("/getalluser", handelgetAllUserToUSer);
 //below are routes which needs admin verification;
 usersRoute.use("/", validateAdmin);
 usersRoute.post("/adduser", addUser);

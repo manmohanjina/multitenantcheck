@@ -11,18 +11,19 @@ const util = require("util");
 
 //getting all user to user info;
 
-const handelgetAlluser1 = (req, res) => {
+const handelgetAllUserToUSer = (req, res) => {
     
  
   try {
     const token = req.headers.authorization;
-console.log(token);
+// console.log(token);
   
 
     jwt.verify(token, process.env.secret_key, (err, Tenantuuid) => {
       if (err) {
         return res.status(500).send({ error: err });
       } else {
+        console.log(Tenantuuid.org_id,"tenant name");
         const dbName = `tenant_${Tenantuuid.org_id}`;
         const userDbConfig = {
           ...dbConfig,
@@ -661,5 +662,5 @@ module.exports = {
   userLogin,
   handleGetAllUser,
   handleAssignToColleague,
-  handelgetAlluser1,
+  handelgetAllUserToUSer,
 };
